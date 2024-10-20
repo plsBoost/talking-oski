@@ -1,3 +1,13 @@
+/talking-oski/my-oski-app/node_modules
+/talking-oski/my-oski-app/.pnp
+/talking-oski/my-oski-app/.next
+/talking-oski/my-oski-app/out
+/talking-oski/my-oski-app/build
+/talking-oski/my-oski-app/coverage
+/talking-oski/my-oski-app/.idea
+/talking-oski/my-oski-app/.vscode
+/talking-oski/my-oski-app/.*env*.local
+
 # Dependencies
 /node_modules
 /.pnp
