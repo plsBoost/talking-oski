@@ -18,10 +18,17 @@ export default async function transcribeHandler(req, res) {
           sentiment: result.sentiment,
         });
       } else if (type === "audio") {
-        // Streaming audio transcription with buffer
+        // Streaming audio transcription with buffer and custom flags
         const transcriptionResult = await deepgram.transcription.preRecorded(
           { buffer: audioData, mimetype: "audio/webm" },
-          { punctuate: true, interim_results: true }
+          {
+            punctuate: true,
+            smart_format: true,
+            no_delay: false,
+            model: "nova-2", // New model selection
+            filler_words: true, // Filler words included in transcription
+            dictation: true, // Enhanced dictation mode
+          }
         );
 
         return res.status(200).json({
