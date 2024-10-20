@@ -1,74 +1,97 @@
 "use client";
 
 import Mascot from "./components/Mascot";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import LoadingScreen from "../components/LoadingScreen";
+import axios from "axios";
+import ReactMarkdown from "react-markdown";
+import remarkBreaks from "remark-breaks";
 
 export default function Home() {
   const [response, setResponse] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [recognition, setRecognition] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingResponse, setIsFetchingResponse] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const oskiResponseRef = useRef(null);
+  const [recorder, setRecorder] = useState(null);
+  const [error, setError] = useState(null);
 
-  // Function to toggle the microphone listening state
-  const toggleListening = () => {
-    console.log("Mic button clicked. Is listening:", isListening);
-
-    if (!recognition) {
-      const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
+  useEffect(() => {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
       const recog = new SpeechRecognition();
       recog.lang = "en-US";
 
       recog.onstart = function () {
-        console.log("Listening started...");
-        document.getElementById("oski-response").innerText = "Listening...";
+        if (oskiResponseRef.current) {
+          oskiResponseRef.current.innerText = "Listening...";
+        }
       };
 
       recog.onresult = function (event) {
         const transcript = event.results[0][0].transcript;
-        console.log("Transcript received:", transcript);
         document.getElementById("user-input").value = transcript;
-        handleResponse(transcript);
+        handleGPTResponse(transcript);
       };
 
       recog.onerror = function (event) {
-        console.error("Error during speech recognition:", event.error);
-        document.getElementById("oski-response").innerText =
-          "Error: " + event.error;
+        if (oskiResponseRef.current) {
+          oskiResponseRef.current.innerText = "Error: " + event.error;
+        }
       };
 
       setRecognition(recog);
-    }
-
-    if (isListening) {
-      recognition.stop();
-      console.log("Stopped listening.");
     } else {
-      recognition.start();
-      console.log("Started listening.");
+      console.error("SpeechRecognition is not supported in this browser.");
     }
+  }, []);
 
-    setIsListening(!isListening);
+  const toggleListening = () => {
+    if (recognition) {
+      if (isListening) {
+        recognition.stop();
+      } else {
+        recognition.start();
+      }
+      setIsListening(!isListening);
+    } else {
+      console.error("Recognition object is not initialized yet.");
+    }
   };
 
-  // Function to handle appending the transcribed words
-  const handleResponse = (transcript) => {
-    console.log("Transcript being handled:", transcript);
-    // Append the new transcript to the existing response
-    setResponse((prevResponse) => prevResponse + " " + transcript);
+  const handleGPTResponse = async (inputText) => {
+    try {
+      setIsFetchingResponse(true);
+      setResponse((prevResponse) => prevResponse + "\n\nOski: "); // Ensure double newline for markdown
+      const { data } = await axios.post("/api/gpt", { message: inputText });
+      // Simulate streaming by appending each character
+      for (let char of data.response) {
+        setResponse((prevResponse) => prevResponse + char);
+        await new Promise((resolve) => setTimeout(resolve, 50)); // Adjust delay as needed
+      }
+      setIsFetchingResponse(false);
+    } catch (error) {
+      console.error("Error fetching GPT response:", error);
+      setResponse(
+        (prevResponse) => prevResponse + "\n\nError: Could not fetch response."
+      );
+      setIsFetchingResponse(false);
+    }
   };
 
-  // Function to handle Enter key press
-  const handleEnterKey = (e) => {
-    if (e.key === 'Enter') {
+  const handleEnterKey = async (e) => {
+    if (e.key === "Enter") {
       e.preventDefault();
-      handleResponse(e.target.value);
-      e.target.value = ''; // Clear the input field after submitting
+      const userInput = e.target.value;
+      setResponse((prevResponse) => prevResponse + "\nYou: " + userInput);
+      handleGPTResponse(userInput);
+      e.target.value = ""; // Clear the input field after submitting
     }
   };
 
-  // Function to exit the loading screen
   const exitLoadingScreen = () => {
     setIsLoading(false);
   };
@@ -88,9 +111,13 @@ export default function Home() {
             </h1>
             <Mascot />
             <div className="speech-bubble p-4 bg-gray-700 rounded-lg text-left mb-4 hover:shadow-lg">
-              <p id="oski-response" className="text-white">
+              <ReactMarkdown
+                className="text-white"
+                remarkPlugins={[remarkBreaks]}
+                ref={oskiResponseRef}
+              >
                 {response ? response : "Hi! Ask me what's happening on campus!"}
-              </p>
+              </ReactMarkdown>
             </div>
             <div className="flex justify-center items-center">
               <input
@@ -109,7 +136,9 @@ export default function Home() {
               </button>
             </div>
             <div className="mt-4">
-              <p className="text-gray-400">Waiting for Oski’s response...</p>
+              {isFetchingResponse && (
+                <p className="text-gray-400">Waiting for Oski’s response...</p>
+              )}
             </div>
           </div>
         </div>
