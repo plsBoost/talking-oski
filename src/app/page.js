@@ -10,13 +10,12 @@ import remarkBreaks from "remark-breaks";
 export default function Home() {
   const [response, setResponse] = useState("");
   const [isListening, setIsListening] = useState(false);
-  const [recognition, setRecognition] = useState(null);
+  const [audioUrl, setAudioUrl] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isFetchingResponse, setIsFetchingResponse] = useState(false);
-  const [transcript, setTranscript] = useState("");
+  const [recognition, setRecognition] = useState(null);
   const oskiResponseRef = useRef(null);
-  const [recorder, setRecorder] = useState(null);
-  const [error, setError] = useState(null);
+  const audioRef = useRef(null);
 
   useEffect(() => {
     const SpeechRecognition =
@@ -65,16 +64,32 @@ export default function Home() {
   const handleGPTResponse = async (inputText) => {
     try {
       setIsFetchingResponse(true);
-      setResponse((prevResponse) => prevResponse + "\n\nOski: "); // Ensure double newline for markdown
-      const { data } = await axios.post("/api/gpt", { message: inputText });
-      // Simulate streaming by appending each character
-      for (let char of data.response) {
-        setResponse((prevResponse) => prevResponse + char);
-        await new Promise((resolve) => setTimeout(resolve, 50)); // Adjust delay as needed
-      }
+      setResponse((prevResponse) => prevResponse + "\n\nOski: ");
+
+      // 1. Request GPT response
+      const gptResponse = await axios.post("/api/gpt", { message: inputText });
+      const textResponse = gptResponse.data.response;
+
+      // Set the GPT text response
+      setResponse((prevResponse) => prevResponse + textResponse);
+
+      // 2. Now request the TTS audio from ttsHandler using GPT response
+      const ttsResponse = await axios.post(
+        "/api/tts",
+        { text: textResponse },
+        { responseType: "blob" }
+      );
+      const blob = new Blob([ttsResponse.data], { type: "audio/wav" });
+      const newAudioUrl = URL.createObjectURL(blob);
+
+      // Set the new audio URL and play the audio
+      setAudioUrl(newAudioUrl);
+      const audio = new Audio(newAudioUrl);
+      audio.play();
+
       setIsFetchingResponse(false);
     } catch (error) {
-      console.error("Error fetching GPT response:", error);
+      console.error("Error fetching GPT or TTS response:", error);
       setResponse(
         (prevResponse) => prevResponse + "\n\nError: Could not fetch response."
       );
@@ -135,9 +150,17 @@ export default function Home() {
                 {isListening ? "🔇" : "🎤"}
               </button>
             </div>
+            {audioUrl && (
+              <audio
+                ref={audioRef}
+                src={audioUrl}
+                controls
+                className="w-full mt-4"
+              />
+            )}
             <div className="mt-4">
               {isFetchingResponse && (
-                <p className="text-gray-400">Waiting for Oski’s response...</p>
+                <p className="text-gray-400">Waiting for Oski's response...</p>
               )}
             </div>
           </div>
