@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>'Oski the Man </title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            background-image: url('doe.jpg'); /* UC Berkeley background image */
+            background-size: cover;
+            background-position: center;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 50px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .oski-img {
+            width: 200px;
+            height: auto;
+            margin: 20px 0;
+        }
+        .speech-bubble {
+            position: relative;
+            background: #f0f0f0;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: left;
+            display: inline-block;
+            max-width: 350px;
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .speech-bubble:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50px;
+            width: 0;
+            height: 0;
+            border: 15px solid transparent;
+            border-top-color: #f0f0f0;
+            border-bottom: 0;
+            margin-left: -15px;
+            margin-bottom: -15px;
+        }
+        input[type="text"] {
+            width: 75%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 2px solid #0072ce;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .mic-button {
+            padding: 10px;
+            background-color: #0072ce;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        #response {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>The Oski Oracle </h1>
+        <img src="oski.jpg" alt="Oski the Bear" class="oski-img">
+        <div class="speech-bubble" id="oski-response">Hi! Ask me what's happening on campus!</div>
+        
+        <div>
+            <input type="text" id="user-input" placeholder="Type your question here..." onkeydown="handleKeyPress(event)">
+            <button class="mic-button" id="mic-btn" onclick="toggleListening()">🎤</button>
+        </div>
+        
+        <p id="response"></p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        let recognition;
+        let isListening = false;
+
+        // Initialize SpeechRecognition
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.onstart = function() {
+                document.getElementById('oski-response').innerText = 'Listening...';
+            };
+            recognition.onresult = async function(event) {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('user-input').value = transcript;
+                getOskiResponse(transcript);
+            };
+            recognition.onerror = function(event) {
+                document.getElementById('oski-response').innerText = 'Error: ' + event.error;
+            };
+        } else {
+            document.getElementById('oski-response').innerText = 'Speech recognition is not supported in this browser.';
+        }
+
+        // Toggle listening
+        function toggleListening() {
+            if (isListening) {
+                recognition.stop();
+                isListening = false;
+                document.getElementById('mic-btn').innerText = '🎤';
+            } else {
+                recognition.start();
+                isListening = true;
+                document.getElementById('mic-btn').innerText = '🔇';
+            }
+        }
+
+        // Handle Enter key press for text input
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                const userInput = document.getElementById('user-input').value;
+                getOskiResponse(userInput);
+            }
+        }
+
+        // Send query and get response
+        async function getOskiResponse(query) {
+            const deepgramApiKey = 'YOUR_DEEPGRAM_API_KEY'; // Replace with your Deepgram API key
+            const deepgramUrl = 'https://api.deepgram.com/v1/listen'; // Placeholder for the Deepgram endpoint
+
+            try {
+                // Placeholder: Here you'd send the query to Deepgram and process the result
+                const response = await axios.post(deepgramUrl, {
+                    query: query
+                }, {
+                    headers: {
+                        'Authorization': `Token ${deepgramApiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const responseText = response.data.transcription || "I'm not sure what to say to that!";
+                document.getElementById('oski-response').innerText = responseText;
+
+                speak(responseText); // Make Oski "talk"
+            } catch (error) {
+                console.error('Error with Deepgram API:', error);
+                document.getElementById('oski-response').innerText = 'There was an error processing your request.';
+            }
+        }
+
+        // Text-to-speech for Oski responses
+        function speak(text) {
+            const speech = new SpeechSynthesisUtterance();
+            speech.text = text;
+            speech.lang = 'en-US';
+            window.speechSynthesis.speak(speech);
+        }
+    </script>
+</body>
+</html>
