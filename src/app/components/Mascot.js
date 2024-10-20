@@ -2,11 +2,11 @@
 
 export default function Mascot() {
   return (
-    <div className="text-center">
+    <div className="text-center perspective-500">
       <img
         src="/oski.jpg"
         alt="Oski the Bear"
-        className="w-48 h-auto mx-auto mb-4 animate-pulse transition-transform duration-500 hover:scale-110"
+        className="w-48 h-48 mx-auto mb-4 rounded-full border-4 border-yellow-400 transition-transform duration-500 hover:animate-flip"
       />
     </div>
   );

@@ -86,13 +86,7 @@ export default function Home() {
             <h1 className="text-4xl font-extrabold mb-6 text-yellow-400">
               The Oski Oracle
             </h1>
-            <div className="text-center">
-              <img
-                src="/oski.jpg"
-                alt="Oski the Bear"
-                className="w-48 h-48 mx-auto mb-4 rounded-full border-4 border-yellow-400 hover:animate-bounce"
-              />
-            </div>
+            <Mascot />
             <div className="speech-bubble p-4 bg-gray-700 rounded-lg text-left mb-4 hover:shadow-lg">
               <p id="oski-response" className="text-white">
                 {response ? response : "Hi! Ask me what's happening on campus!"}
